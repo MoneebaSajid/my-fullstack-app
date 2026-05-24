@@ -3,7 +3,7 @@
 # 🚗 NexRide
 ### Web & Mobile Based AI-Driven Vehicle Rental System
 
-![NexRide Banner](./assets/logo.png)
+![NexRide Banner](fyp-mobile/assets/logo.png)
 
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![React Native](https://img.shields.io/badge/React_Native-Expo_SDK_55-blue?style=for-the-badge&logo=react)](https://reactnative.dev)
