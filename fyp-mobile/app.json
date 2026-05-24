@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "NexRide",
+    "slug": "nexride",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A3C6E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nexride.app"
+    },
+    
+    "android": {
+       "permissions": [
+    "ACCESS_COARSE_LOCATION",
+    "ACCESS_FINE_LOCATION",
+    "ACCESS_BACKGROUND_LOCATION"
+  ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#1A3C6E"
+      },
+      "package": "com.nexride.app"
+    },
+    "web": {
+      "favicon": "./assets/logo.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow NexRide to use your location.",
+          "locationWhenInUsePermission": "Allow NexRide to use your location."
+        }
+      ]
+    ]
+  }
+}
