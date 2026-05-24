@@ -540,8 +540,8 @@ Login → Dashboard (Charts + AI Insights)
 | 👩‍💻 | **Moneeba Sajid** | 2022-GCUF-02615 |
 | 👩‍💻 | **Wania Sultan** | 2022-GCUF-02599 |
 
-**Supervisor:** *(Supervisor Name)*
-**Department:** Computer Science
+**Supervisor:** *(Prof.Dr Khurram Zeeshan)*
+**Department:** Software Engineering
 **University:** GC University Faisalabad
 **Session:** BS Software Engineering 2022–2026
 
