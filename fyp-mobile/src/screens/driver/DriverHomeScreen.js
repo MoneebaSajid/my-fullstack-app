@@ -15,7 +15,7 @@ const COLORS = {
   green: '#26D07C', red: '#FF4757', orange: '#FF9500',
 };
 
-const SOCKET_URL = 'http://192.168.176.77:5000'; // ← apna IP yahan
+const SOCKET_URL = 'http://192.168.228.77:5000'; // ← apna IP yahan
 
 export default function DriverHomeScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);

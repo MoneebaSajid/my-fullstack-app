@@ -21,6 +21,7 @@ const COLORS = {
   green: '#26D07C',
   warning: '#FFC107',
   danger: '#FF4D4D',
+  orange: '#FF9500', // Added orange for Pay Now button
 };
 
 export default function MyBookingsScreen({ navigation }) {
@@ -103,30 +104,48 @@ export default function MyBookingsScreen({ navigation }) {
           <Text style={styles.amountLabel}>Total Fare</Text>
           <Text style={styles.amount}>Rs. {item.total_amount}</Text>
         </View>
+
+        {/* Conditional Buttons based on status */}
+        {item.status === 'pending' || item.status === 'confirmed' ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: COLORS.orange }]}
+            onPress={() => navigation.navigate('Payment', {
+              booking_id: item.booking_id,
+              booking_type: 'with-driver',
+              total_amount: item.total_amount,
+              receipt_number: item.receipt_number || `NXR-PL-${item.booking_id}`, // Fallback receipt number for pay later
+              fare_details: item.fare_details || { base_fare: item.total_amount } // Fallback fare details
+            })}
+          >
+            <Text style={styles.actionTxt}>💳 Pay Now</Text>
+          </TouchableOpacity>
+        ) : item.status === 'completed' ? (
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('Feedback', {
+              booking_id: item.booking_id,
+              booking_type: 'with-driver',
+              driver_id: item.driver_id
+            })}
+          >
+            <Text style={styles.actionTxt}>⭐ Feedback</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Track Driver Button — only for active bookings */}
+      {(item.status === 'confirmed' || item.status === 'started') && (
         <TouchableOpacity
-          style={styles.feedbackBtn}
-          onPress={() => navigation.navigate('Feedback', {
-            booking_id: item.booking_id,
-            booking_type: 'with-driver',
-            driver_id: item.driver_id
+          style={styles.trackBtn}
+          onPress={() => navigation.navigate('TrackDriver', {
+            booking: item,
+            driver_id: item.driver_id,
+            driver_name: item.driver_name,
           })}
         >
-          <Text style={styles.feedbackTxt}>⭐ Feedback</Text>
+          <Text style={styles.trackBtnTxt}>🗺️ Track My Driver Live</Text>
         </TouchableOpacity>
-      </View>
-      {/* Track Driver Button — only for active bookings */}
-{(item.status === 'confirmed' || item.status === 'started') && (
-  <TouchableOpacity
-    style={styles.trackBtn}
-    onPress={() => navigation.navigate('TrackDriver', {
-      booking: item,
-      driver_id: item.driver_id,
-      driver_name: item.driver_name,
-    })}
-  >
-    <Text style={styles.trackBtnTxt}>🗺️ Track My Driver Live</Text>
-  </TouchableOpacity>
-)}
+      )}
     </View>
   );
 
@@ -163,16 +182,33 @@ export default function MyBookingsScreen({ navigation }) {
           <Text style={styles.amountLabel}>Total Fare</Text>
           <Text style={styles.amount}>Rs. {item.total_amount}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.feedbackBtn}
-          onPress={() => navigation.navigate('Feedback', {
-            booking_id: item.booking_id,
-            booking_type: 'without-driver',
-            driver_id: null
-          })}
-        >
-          <Text style={styles.feedbackTxt}>⭐ Feedback</Text>
-        </TouchableOpacity>
+
+        {/* Conditional Buttons based on status */}
+        {item.status === 'pending' || item.status === 'confirmed' ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: COLORS.orange }]}
+            onPress={() => navigation.navigate('Payment', {
+              booking_id: item.booking_id,
+              booking_type: 'without-driver',
+              total_amount: item.total_amount,
+              receipt_number: item.receipt_number || `NXR-PL-${item.booking_id}`,
+              fare_details: item.fare_details || { base_fare: item.total_amount }
+            })}
+          >
+            <Text style={styles.actionTxt}>💳 Pay Now</Text>
+          </TouchableOpacity>
+        ) : item.status === 'completed' ? (
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('Feedback', {
+              booking_id: item.booking_id,
+              booking_type: 'without-driver',
+              driver_id: null
+            })}
+          >
+            <Text style={styles.actionTxt}>⭐ Feedback</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -319,19 +355,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   trackBtn: {
-  backgroundColor: 'rgba(46,134,222,0.15)',
-  borderWidth: 1,
-  borderColor: COLORS.accent,
-  padding: 10,
-  borderRadius: 8,
-  alignItems: 'center',
-  marginTop: 8,
-},
-trackBtnTxt: {
-  color: COLORS.light,
-  fontWeight: 'bold',
-  fontSize: 13,
-},
+    backgroundColor: 'rgba(46,134,222,0.15)',
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  trackBtnTxt: {
+    color: COLORS.light,
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
   tabTxtActive: {
     color: COLORS.white,
   },
@@ -424,13 +460,13 @@ trackBtnTxt: {
     fontWeight: '800',
     color: COLORS.green,
   },
-  feedbackBtn: {
+  actionBtn: { // Renamed from feedbackBtn for better reuse
     backgroundColor: COLORS.accent,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  feedbackTxt: {
+  actionTxt: { // Renamed from feedbackTxt for better reuse
     color: COLORS.white,
     fontWeight: '700',
     fontSize: 12,
