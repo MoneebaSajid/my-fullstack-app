@@ -10,7 +10,7 @@ import api from '../../services/api';
 const { width, height } = Dimensions.get('window');
 // const SOCKET_URL = 'http://10.62.34.4:5000'; // ← apna IP yahan
 // const API_URL = 'http://10.62.34.4:5000/api';
-const SOCKET_URL = 'http://192.168.228.77:5000'; // ← apna IP yahan
+const SOCKET_URL = 'http://192.168.36.77:5000'; // ← apna IP yahan
 
 const COLORS = {
   navy: '#0A1628', accent: '#2E86DE', light: '#4FC3F7',

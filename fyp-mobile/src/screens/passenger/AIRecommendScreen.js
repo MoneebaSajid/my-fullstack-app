@@ -109,7 +109,7 @@ export default function AIRecommendScreen({ navigation }) {
         onPress={() => navigation.navigate('VehicleDetail', { vehicle: item })}
         activeOpacity={0.85}
       >
-        <Text style={styles.bookTxt}>Book This Vehicle →</Text>
+        <Text style={styles.bookTxt}>Book This Vehicle </Text>
       </TouchableOpacity>
     </View>
   );

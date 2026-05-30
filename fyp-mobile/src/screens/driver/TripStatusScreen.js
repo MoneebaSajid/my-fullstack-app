@@ -1,478 +1,412 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Dimensions
+  View, Text, StyleSheet, TouchableOpacity,
+  ActivityIndicator, Alert, ScrollView,
+  Animated, Dimensions, StatusBar
 } from 'react-native';
 import api from '../../services/api';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const COLORS = {
-  navy: '#0A1628',
-  blue: '#1A3C6E',
-  accent: '#2E86DE',
-  light: '#4FC3F7',
-  white: '#FFFFFF',
-  glass: 'rgba(255,255,255,0.08)',
+  navy:        '#0A1628',
+  accent:      '#2E86DE',
+  light:       '#4FC3F7',
+  white:       '#FFFFFF',
+  glass:       'rgba(255,255,255,0.08)',
   glassBorder: 'rgba(255,255,255,0.15)',
-  cardBg: 'rgba(255,255,255,0.06)',
-  textMuted: 'rgba(255,255,255,0.55)',
-  success: '#00E676',
-  successBg: 'rgba(0,230,118,0.12)',
-  warning: '#FFD600',
-  warningBg: 'rgba(255,214,0,0.12)',
-  orange: '#FF9500',
-  orangeBg: 'rgba(255,149,0,0.12)',
+  textMuted:   'rgba(255,255,255,0.55)',
+  green:       '#26D07C',
+  red:         '#FF4757',
+  orange:      '#FF9500',
+  yellow:      '#FFD700',
 };
+
+const STAGES = [
+  {
+    key:    'confirmed',
+    label:  'Booking Confirmed',
+    icon:   '✅',
+    color:  COLORS.light,
+    desc:   'Booking is confirmed. Head to pickup location.',
+  },
+  {
+    key:    'started',
+    label:  'Trip Started',
+    icon:   '🚗',
+    color:  COLORS.orange,
+    desc:   'Trip is in progress. Drive safely!',
+  },
+  {
+    key:    'completed',
+    label:  'Trip Completed',
+    icon:   '🏁',
+    color:  COLORS.green,
+    desc:   'Trip done! Vehicle returned to passenger.',
+  },
+];
+
+const stageIndex = (status) =>
+  STAGES.findIndex(s => s.key === status);
 
 export default function TripStatusScreen({ route, navigation }) {
   const { booking } = route.params;
-  const [loading, setLoading] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(booking.status);
 
-  const statusFlow = [
-    { key: 'pending', label: '⏳ Pending', color: COLORS.warning },
-    { key: 'confirmed', label: '✅ Confirmed', color: COLORS.accent },
-    { key: 'started', label: '🚗 Trip Started', color: COLORS.orange },
-    { key: 'completed', label: '🏁 Completed', color: COLORS.success },
-  ];
+  const [currentStatus, setCurrentStatus] = useState(booking?.status || 'confirmed');
+  const [loading,        setLoading]       = useState(false);
+  const [bookingDetail,  setBookingDetail] = useState(booking);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
-  const getNextStatus = () => {
-    if (currentStatus === 'pending') return 'confirmed';
-    if (currentStatus === 'confirmed') return 'started';
-    if (currentStatus === 'started') return 'completed';
-    return null;
+  useEffect(() => {
+    const idx = stageIndex(currentStatus);
+    Animated.timing(progressAnim, {
+      toValue:  idx,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+  }, [currentStatus]);
+
+  const updateStatus = async (newStatus) => {
+    const currentIdx = stageIndex(currentStatus);
+    const newIdx     = stageIndex(newStatus);
+
+    // Can only go forward
+    if (newIdx <= currentIdx) {
+      Alert.alert('⚠️', 'Cannot go back to a previous status!');
+      return;
+    }
+
+    // Confirm before completing
+    if (newStatus === 'completed') {
+      Alert.alert(
+        '🏁 Complete Trip?',
+        'Mark this trip as completed? Make sure vehicle has been returned.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes, Complete', onPress: () => doUpdate(newStatus) },
+        ]
+      );
+      return;
+    }
+
+    doUpdate(newStatus);
   };
 
-  const getNextLabel = () => {
-    if (currentStatus === 'pending') return '✅ Confirm Trip';
-    if (currentStatus === 'confirmed') return '🚗 Start Trip';
-    if (currentStatus === 'started') return '🏁 Complete Trip';
-    return null;
-  };
-
-  const handleUpdateStatus = async () => {
-    const nextStatus = getNextStatus();
-    if (!nextStatus) return;
-
+  const doUpdate = async (newStatus) => {
     setLoading(true);
     try {
-      await api.put(`/bookings/update-status/${booking.booking_id}`, {
-        status: nextStatus,
-        booking_type: 'with-driver'
+      await api.put('/bookings/update-status', {
+        booking_id:   bookingDetail.booking_id,
+        booking_type: bookingDetail.booking_type || 'with-driver',
+        status:       newStatus,
       });
 
-      setCurrentStatus(nextStatus);
+      setCurrentStatus(newStatus);
 
-      Alert.alert(
-        '✅ Status Updated!',
-        `Trip status changed to: ${nextStatus.toUpperCase()}`,
-        nextStatus === 'completed'
-          ? [{ text: 'OK', onPress: () => navigation.navigate('DriverHome') }]
-          : [{ text: 'OK' }]
-      );
-
-    } catch (error) {
-      Alert.alert('Error',
-        error.response?.data?.message ||
-        error.message ||
-        'Could not update status!'
-      );
+      if (newStatus === 'completed') {
+        Alert.alert(
+          '🏁 Trip Completed!',
+          'Vehicle released. Passenger can now check their refund status.',
+          [{ text: 'Go to Dashboard', onPress: () => navigation.navigate('DriverHome') }]
+        );
+      } else {
+        Alert.alert('✅ Updated!', `Trip status: ${newStatus.toUpperCase()}`);
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Could not update status!');
     } finally {
       setLoading(false);
     }
   };
 
-  const getCurrentStatusColor = () => {
-    const status = statusFlow.find(s => s.key === currentStatus);
-    return status ? status.color : COLORS.textMuted;
-  };
+  const currentIdx   = stageIndex(currentStatus);
+  const currentStage = STAGES[currentIdx] || STAGES[0];
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange:  [0, 1, 2],
+    outputRange: ['5%', '50%', '100%'],
+  });
 
   return (
     <View style={styles.container}>
-      {/* Background circles */}
-      <View style={styles.circle1} />
-      <View style={styles.circle2} />
-      <View style={styles.circle3} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
+      <View style={styles.blob1} />
+      <View style={styles.blob2} />
 
-      <ScrollView 
-        style={styles.scrollView}
+      {/* Header */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backBtnTxt}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>🚗 Trip Status</Text>
+        <View style={{ width: 38 }} />
+      </View>
+
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Booking Info */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardIcon}>📋</Text>
-            <Text style={styles.sectionTitle}>Booking Details</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.infoIcon}>👤</Text>
-              <Text style={styles.label}>Passenger</Text>
+        {/* Booking Card */}
+        <View style={styles.bookingCard}>
+          <View style={styles.bookingCardTop}>
+            <View style={styles.carIconBox}>
+              <Text style={styles.carIcon}>🚗</Text>
             </View>
-            <Text style={styles.value}>{booking.passenger_name}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.infoIcon}>🚗</Text>
-              <Text style={styles.label}>Vehicle</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.vehicleModel}>
+                {bookingDetail.model || 'Vehicle'}
+              </Text>
+              <Text style={styles.vehicleReg}>
+                {bookingDetail.reg_number || ''}
+              </Text>
             </View>
-            <Text style={styles.value}>{booking.model}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.infoIcon}>📍</Text>
-              <Text style={styles.label}>Pickup</Text>
+            <View style={[styles.statusPill, { backgroundColor: currentStage.color + '25', borderColor: currentStage.color + '60' }]}>
+              <Text style={[styles.statusPillTxt, { color: currentStage.color }]}>
+                {currentStage.icon} {currentStatus.toUpperCase()}
+              </Text>
             </View>
-            <Text style={styles.value}>{booking.pickup_location}</Text>
           </View>
-          
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.infoIcon}>🏁</Text>
-              <Text style={styles.label}>Dropoff</Text>
-            </View>
-            <Text style={styles.value}>{booking.dropoff_location}</Text>
-          </View>
-          
-          <View style={[styles.infoRow, styles.amountRow]}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.infoIcon}>💰</Text>
-              <Text style={styles.label}>Amount</Text>
-            </View>
-            <View style={styles.amountBadge}>
-              <Text style={styles.amountValue}>Rs. {booking.total_amount}</Text>
+
+          <View style={styles.bookingMeta}>
+            {bookingDetail.pickup_location && (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaIcon}>📍</Text>
+                <Text style={styles.metaVal} numberOfLines={1}>
+                  {bookingDetail.pickup_location}
+                </Text>
+              </View>
+            )}
+            {bookingDetail.dropoff_location && (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaIcon}>🏁</Text>
+                <Text style={styles.metaVal} numberOfLines={1}>
+                  {bookingDetail.dropoff_location}
+                </Text>
+              </View>
+            )}
+            {bookingDetail.passenger_name && (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaIcon}>👤</Text>
+                <Text style={styles.metaVal}>{bookingDetail.passenger_name}</Text>
+              </View>
+            )}
+            <View style={styles.metaRow}>
+              <Text style={styles.metaIcon}>💰</Text>
+              <Text style={[styles.metaVal, { color: COLORS.green, fontWeight: '800' }]}>
+                Rs. {bookingDetail.total_amount}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Status Flow */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardIcon}>🚦</Text>
-            <Text style={styles.sectionTitle}>Trip Progress</Text>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.statusFlow}>
-            {statusFlow.map((status, index) => {
-              const isActive = currentStatus === status.key;
-              const isPassed = statusFlow.findIndex(s => s.key === currentStatus) >= index;
-              
+        {/* ── Progress Bar ── */}
+        <View style={styles.progressCard}>
+          <Text style={styles.progressTitle}>Trip Progress</Text>
+
+          {/* Stage dots + labels */}
+          <View style={styles.stagesRow}>
+            {STAGES.map((stage, i) => {
+              const done    = i <= currentIdx;
+              const current = i === currentIdx;
               return (
-                <View key={status.key} style={styles.statusStep}>
+                <View key={stage.key} style={styles.stageItem}>
                   <View style={[
-                    styles.statusDot,
-                    { 
-                      backgroundColor: isPassed ? status.color : COLORS.cardBg,
-                      borderColor: isPassed ? status.color : COLORS.glassBorder,
-                    }
+                    styles.stageDot,
+                    done    && { backgroundColor: stage.color, borderColor: stage.color },
+                    current && { transform: [{ scale: 1.25 }] },
+                    !done   && { backgroundColor: 'transparent', borderColor: COLORS.glassBorder },
                   ]}>
-                    <Text style={[
-                      styles.statusDotTxt,
-                      !isPassed && { color: COLORS.textMuted }
-                    ]}>
-                      {index + 1}
+                    <Text style={styles.stageDotTxt}>
+                      {done ? stage.icon : '○'}
                     </Text>
                   </View>
-                  {index < statusFlow.length - 1 && (
-                    <View style={[
-                      styles.statusLine,
-                      { backgroundColor: statusFlow.findIndex(s => s.key === currentStatus) > index ? COLORS.success : COLORS.glassBorder }
-                    ]} />
-                  )}
                   <Text style={[
-                    styles.statusLabel,
-                    isActive && { color: status.color, fontWeight: '700' }
+                    styles.stageLabel,
+                    { color: done ? stage.color : COLORS.textMuted },
+                    current && { fontWeight: '800' },
                   ]}>
-                    {status.label}
+                    {stage.label}
                   </Text>
                 </View>
               );
             })}
           </View>
+
+          {/* Progress line */}
+          <View style={styles.progressTrack}>
+            <Animated.View style={[styles.progressFill, {
+              width:           progressWidth,
+              backgroundColor: currentStage.color,
+            }]} />
+          </View>
         </View>
 
-        {/* Current Status */}
-        <View style={[styles.statusCard, { borderLeftColor: getCurrentStatusColor() }]}>
-          <Text style={styles.currentStatusLabel}>Current Status</Text>
-          <Text style={[styles.currentStatusTxt, { color: getCurrentStatusColor() }]}>
-            {statusFlow.find(s => s.key === currentStatus)?.label || currentStatus}
+        {/* ── Action Buttons ── */}
+        <View style={styles.actionsCard}>
+          <Text style={styles.actionsTitle}>Update Trip Status</Text>
+          <Text style={styles.actionsSubtitle}>
+            Current: <Text style={{ color: currentStage.color, fontWeight: '700' }}>
+              {currentStage.icon} {currentStatus.toUpperCase()}
+            </Text>
+          </Text>
+
+          {/* Start Trip */}
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              currentStatus === 'confirmed'
+                ? { backgroundColor: COLORS.orange }
+                : styles.actionBtnDone,
+            ]}
+            onPress={() => updateStatus('started')}
+            disabled={currentStatus !== 'confirmed' || loading}
+          >
+            {loading && currentStatus === 'confirmed'
+              ? <ActivityIndicator color={COLORS.white} />
+              : (
+                <>
+                  <Text style={styles.actionBtnIcon}>🚗</Text>
+                  <View>
+                    <Text style={styles.actionBtnLabel}>
+                      {currentIdx >= 1 ? '✓ Trip Started' : 'Start Trip'}
+                    </Text>
+                    <Text style={styles.actionBtnSub}>
+                      {currentIdx >= 1
+                        ? 'Trip is in progress'
+                        : 'Press when passenger is picked up'}
+                    </Text>
+                  </View>
+                </>
+              )
+            }
+          </TouchableOpacity>
+
+          {/* Complete Trip */}
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              currentStatus === 'started'
+                ? { backgroundColor: COLORS.green }
+                : currentStatus === 'completed'
+                  ? styles.actionBtnDone
+                  : styles.actionBtnLocked,
+            ]}
+            onPress={() => updateStatus('completed')}
+            disabled={currentStatus !== 'started' || loading}
+          >
+            {loading && currentStatus === 'started'
+              ? <ActivityIndicator color={COLORS.white} />
+              : (
+                <>
+                  <Text style={styles.actionBtnIcon}>
+                    {currentStatus === 'completed' ? '✅' : '🏁'}
+                  </Text>
+                  <View>
+                    <Text style={styles.actionBtnLabel}>
+                      {currentStatus === 'completed'
+                        ? '✓ Trip Completed'
+                        : 'Complete Trip'}
+                    </Text>
+                    <Text style={styles.actionBtnSub}>
+                      {currentStatus === 'completed'
+                        ? 'Vehicle returned & refund processing'
+                        : currentStatus === 'started'
+                          ? 'Press when vehicle is returned'
+                          : '🔒 Start trip first'}
+                    </Text>
+                  </View>
+                </>
+              )
+            }
+          </TouchableOpacity>
+
+          {/* After completion info */}
+          {currentStatus === 'completed' && (
+            <View style={styles.completedInfo}>
+              <Text style={styles.completedInfoTitle}>🎉 Trip Successfully Completed!</Text>
+              <Text style={styles.completedInfoTxt}>
+                • Vehicle marked as available{'\n'}
+                • You are now available for new bookings{'\n'}
+                • Passenger's refund is being processed{'\n'}
+                • Passenger can check refund in My Bookings
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── Info Box ── */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>📋 Trip Rules Reminder</Text>
+          <Text style={styles.infoTxt}>
+            • Passenger's Rs. 2,000 deposit will be refunded based on vehicle condition{'\n'}
+            • Late return = Rs. 200/hour deducted from deposit{'\n'}
+            • Damage → partial or no refund{'\n'}
+            • Mark completed ONLY when vehicle is returned
           </Text>
         </View>
 
-        {/* Action Button */}
-        {getNextStatus() && (
-          <TouchableOpacity
-            style={[
-              styles.actionBtn, 
-              { 
-                backgroundColor: getCurrentStatusColor(),
-                opacity: loading ? 0.7 : 1 
-              }
-            ]}
-            onPress={handleUpdateStatus}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={styles.actionTxt}>{getNextLabel()}</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {currentStatus === 'completed' && (
-          <View style={styles.completedCard}>
-            <Text style={styles.completedIcon}>🎉</Text>
-            <Text style={styles.completedTxt}>Trip Completed!</Text>
-            <View style={styles.completedBadge}>
-              <Text style={styles.completedSubTxt}>
-                Earnings: Rs. {booking.total_amount}
-              </Text>
-            </View>
-          </View>
-        )}
-
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.navy,
-  },
-  circle1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(46,134,222,0.12)',
-    top: -80,
-    right: -80,
-  },
-  circle2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(79,195,247,0.08)',
-    bottom: 100,
-    left: -60,
-  },
-  circle3: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(26,60,110,0.6)',
-    top: height * 0.4,
-    right: -40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingTop: 20,
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  cardIcon: {
-    fontSize: 22,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.glassBorder,
-    marginBottom: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassBorder,
-  },
-  infoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  infoIcon: {
-    fontSize: 16,
-    width: 20,
-  },
-  label: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  value: {
-    fontSize: 14,
-    color: COLORS.white,
-    fontWeight: '700',
-    textAlign: 'right',
-    flex: 1,
-  },
-  amountRow: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  amountBadge: {
-    backgroundColor: COLORS.successBg,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,230,118,0.2)',
-  },
-  amountValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: COLORS.success,
-    letterSpacing: 0.3,
-  },
-  statusFlow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-  },
-  statusStep: {
-    alignItems: 'center',
-    flex: 1,
-    position: 'relative',
-  },
-  statusDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    borderWidth: 2,
-  },
-  statusDotTxt: {
-    color: COLORS.white,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  statusLine: {
-    position: 'absolute',
-    top: 20,
-    left: '60%',
-    right: '-60%',
-    height: 3,
-    zIndex: -1,
-    borderRadius: 2,
-  },
-  statusLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    fontWeight: '600',
-    paddingHorizontal: 4,
-  },
-  statusCard: {
-    backgroundColor: COLORS.glass,
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderLeftWidth: 5,
-  },
-  currentStatusLabel: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 8,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  currentStatusTxt: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  actionBtn: {
-    padding: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  actionTxt: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  completedCard: {
-    backgroundColor: COLORS.successBg,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,230,118,0.3)',
-  },
-  completedIcon: {
-    fontSize: 56,
-    marginBottom: 12,
-  },
-  completedTxt: {
-    color: COLORS.success,
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
-  completedBadge: {
-    backgroundColor: COLORS.success,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  completedSubTxt: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
+  container:      { flex: 1, backgroundColor: COLORS.navy },
+  blob1:          { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(46,134,222,0.1)', top: -80, right: -80 },
+  blob2:          { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(79,195,247,0.06)', bottom: 100, left: -60 },
+  scrollContent:  { padding: 16, paddingTop: 8 },
+
+  // Header
+  topBar:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12 },
+  backBtn:        { width: 38, height: 38, borderRadius: 10, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', justifyContent: 'center' },
+  backBtnTxt:     { color: COLORS.white, fontSize: 18, fontWeight: '700' },
+  topTitle:       { color: COLORS.white, fontSize: 17, fontWeight: '800' },
+
+  // Booking card
+  bookingCard:    { backgroundColor: COLORS.glass, borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.glassBorder },
+  bookingCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  carIconBox:     { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(46,134,222,0.15)', alignItems: 'center', justifyContent: 'center' },
+  carIcon:        { fontSize: 24 },
+  vehicleModel:   { color: COLORS.white, fontSize: 16, fontWeight: '800' },
+  vehicleReg:     { color: COLORS.textMuted, fontSize: 12, marginTop: 2, letterSpacing: 1 },
+  statusPill:     { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt:  { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  bookingMeta:    { gap: 8 },
+  metaRow:        { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaIcon:       { fontSize: 14, width: 20 },
+  metaVal:        { color: COLORS.textMuted, fontSize: 13, flex: 1 },
+
+  // Progress
+  progressCard:   { backgroundColor: COLORS.glass, borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.glassBorder },
+  progressTitle:  { color: COLORS.white, fontSize: 14, fontWeight: '800', marginBottom: 16 },
+  stagesRow:      { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  stageItem:      { flex: 1, alignItems: 'center', gap: 6 },
+  stageDot:       { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  stageDotTxt:    { fontSize: 16 },
+  stageLabel:     { fontSize: 10, fontWeight: '600', textAlign: 'center', lineHeight: 14 },
+  progressTrack:  { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+  progressFill:   { height: '100%', borderRadius: 3 },
+
+  // Actions
+  actionsCard:    { backgroundColor: COLORS.glass, borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.glassBorder },
+  actionsTitle:   { color: COLORS.white, fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  actionsSubtitle:{ color: COLORS.textMuted, fontSize: 12, marginBottom: 16 },
+  actionBtn:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, marginBottom: 12 },
+  actionBtnDone:  { backgroundColor: 'rgba(38,208,124,0.12)', borderWidth: 1, borderColor: 'rgba(38,208,124,0.3)' },
+  actionBtnLocked:{ backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: COLORS.glassBorder },
+  actionBtnIcon:  { fontSize: 28 },
+  actionBtnLabel: { color: COLORS.white, fontSize: 15, fontWeight: '800', marginBottom: 2 },
+  actionBtnSub:   { color: COLORS.textMuted, fontSize: 11 },
+
+  // Completed info
+  completedInfo:  { backgroundColor: 'rgba(38,208,124,0.1)', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(38,208,124,0.3)' },
+  completedInfoTitle: { color: COLORS.green, fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  completedInfoTxt:   { color: COLORS.textMuted, fontSize: 12, lineHeight: 20 },
+
+  // Info box
+  infoBox:        { backgroundColor: 'rgba(46,134,222,0.08)', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(46,134,222,0.2)' },
+  infoTitle:      { color: COLORS.light, fontSize: 13, fontWeight: '800', marginBottom: 8 },
+  infoTxt:        { color: COLORS.textMuted, fontSize: 12, lineHeight: 20 },
 });

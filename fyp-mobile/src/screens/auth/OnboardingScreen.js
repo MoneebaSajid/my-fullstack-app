@@ -201,7 +201,7 @@ export default function OnboardingScreen({ navigation }) {
             onPress={handleNext}
           >
             <Text style={styles.nextTxt}>
-              {activeIndex === SLIDES.length - 1 ? '🚀 Get Started' : 'Next →'}
+              {activeIndex === SLIDES.length - 1 ? '🚀 Get Started' : 'Next'}
             </Text>
           </TouchableOpacity>
         </View>

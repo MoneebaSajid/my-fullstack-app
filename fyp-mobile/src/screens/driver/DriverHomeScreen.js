@@ -15,7 +15,7 @@ const COLORS = {
   green: '#26D07C', red: '#FF4757', orange: '#FF9500',
 };
 
-const SOCKET_URL = 'http://192.168.228.77:5000'; // ← apna IP yahan
+const SOCKET_URL = 'http://192.168.36.77:5000'; // ← apna IP yahan
 
 export default function DriverHomeScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
@@ -156,12 +156,13 @@ export default function DriverHomeScreen({ navigation }) {
       <View style={styles.cardFooter}>
         <Text style={styles.amount}>💰 Rs. {item.total_amount}</Text>
       </View>
+      
       {item.status !== 'completed' && item.status !== 'cancelled' && (
         <TouchableOpacity
           style={styles.tripBtn}
           onPress={() => navigation.navigate('TripStatus', { booking: item })}
         >
-          <Text style={styles.tripBtnTxt}>🚦 Manage Trip</Text>
+          <Text style={styles.tripBtnTxt}>🚗 Manage Trip</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -178,6 +179,14 @@ export default function DriverHomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+
+      {/* Button navigates specifically to LoginScreen */}
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => navigation.replace('Login')} // Uses replace to prevent physical back button issues
+      >
+        <Text style={styles.backButtonTxt}>⬅️ Logout</Text>
+      </TouchableOpacity>
 
       {/* Driver Header */}
       <View style={styles.driverHeader}>
@@ -272,6 +281,10 @@ export default function DriverHomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.navy, padding: 15 },
+  
+  backButton: { marginBottom: 15, alignSelf: 'flex-start', paddingVertical: 5 },
+  backButtonTxt: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
+
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   driverHeader: { backgroundColor: COLORS.accent, borderRadius: 15, padding: 15, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   driverInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },

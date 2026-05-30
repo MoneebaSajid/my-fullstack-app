@@ -12,6 +12,7 @@ import FeedbackScreen from '../screens/passenger/FeedbackScreen';
 import NearestDriversScreen from '../screens/passenger/NearestDriversScreen';
 import TrackDriverScreen from '../screens/passenger/TrackDriverScreen';
 import ReceiptScreen from '../screens/passenger/ReceiptScreen';
+import RefundStatusScreen from '../screens/passenger/RefundStatusScreen';
 
 const Stack = createStackNavigator();
 
@@ -33,6 +34,13 @@ export default function PassengerNavigator() {
   component={ReceiptScreen}
   options={{ title: '🧾 Receipt' }}
 />
+<Stack.Screen
+  name="RefundStatus"
+  component={RefundStatusScreen}
+  options={{ headerShown: false }}
+/>
+
+  
     </Stack.Navigator>
   );
 }

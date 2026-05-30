@@ -14,7 +14,9 @@ const trackingRoutes = require('./routes/tracking.routes');
 const aiRoutes = require('./routes/ai.routes');
 const driverRoutes = require('./routes/driver.routes'); 
 const passengerRoutes = require('./routes/passenger.routes');
-const feedbackRoutes = require('./routes/feedback.routes'); // ← ADD
+const feedbackRoutes = require('./routes/feedback.routes'); 
+const refundRoutes = require('./routes/refund.routes');
+// ← ADD
 
 const app = express();
 const server = http.createServer(app);
@@ -42,7 +44,8 @@ app.use('/api/tracking', trackingRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/drivers', driverRoutes); 
 app.use('/api/passengers', passengerRoutes);
-app.use('/api/feedback', feedbackRoutes);// ← ADD
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/refunds', refundRoutes);// ← ADD
 
 // Socket.io — Real time tracking
 // Socket.io — Real time tracking
