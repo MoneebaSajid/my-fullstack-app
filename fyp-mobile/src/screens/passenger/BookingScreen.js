@@ -266,7 +266,7 @@ export default function BookingScreen({ route, navigation }) {
     try {
       const distKm = parseFloat(km) || 0;
       const farePerHour = parseFloat(vehicle.fare_per_hour) || 0;
-      const farePerDay = parseFloat(vehicle.fare_per_day) || farePerHour * HOURS_PER_DAY;
+      const farePerDay = farePerHour * 12; // Force to strictly fare_per_hour x 12
       const farePerKm = parseFloat(vehicle.fare_per_km) || 0;
 
       const tripHrs = distKm / AVG_SPEED_KMH;
@@ -275,7 +275,9 @@ export default function BookingScreen({ route, navigation }) {
 
       let durationCharge = 0;
       let durationLabel = '';
+      let perKmCharge = 0;
 
+      // Ensure ONLY the selected rate applies
       if (rateType === 'hourly') {
         durationCharge = billedHrs * farePerHour;
         durationLabel = `${billedHrs} hr(s) × Rs.${farePerHour}`;
@@ -283,12 +285,9 @@ export default function BookingScreen({ route, navigation }) {
         durationCharge = billedDays * farePerDay;
         durationLabel = `${billedDays} day(s) x Rs.${farePerDay}/day`;
       } else {
-        durationCharge = 0;
+        perKmCharge = distKm * farePerKm;
         durationLabel = `Per-KM mode`;
       }
-
-      // Per KM charge is always applied
-      const perKmCharge = distKm * farePerKm;
 
       let driverFee = 0;
       if (bookingType === 'with-driver' && selectedDriver) {
@@ -459,7 +458,7 @@ export default function BookingScreen({ route, navigation }) {
         '✅ Booking Successful!',
           `Receipt: ${response.data.receipt_number}\n\n` +
           (fare?.duration_charge > 0 ? `Duration Fare:  Rs. ${fare.duration_charge}\n` : '') +
-          `Distance Fare:  Rs. ${fare?.per_km_charge || 0}\n` +
+          (fare?.per_km_charge > 0 ? `Distance Fare:  Rs. ${fare.per_km_charge}\n` : '') +
           (fare?.driver_fee > 0 ? `Driver Fee:     Rs. ${fare.driver_fee}\n` : '') +
           `Tax (5%):       Rs. ${fare?.tax_amount || 0}\n` +
           `Deposit (Ref):  Rs. ${fare?.deposit_amount || DEPOSIT_AMOUNT}\n` +
@@ -514,7 +513,7 @@ export default function BookingScreen({ route, navigation }) {
             <View style={styles.priceItem}>
               <Text style={styles.priceLabel}>Per Day (12hr)</Text>
               <Text style={styles.priceVal}>
-                Rs. {vehicle.fare_per_day || Math.round(parseFloat(vehicle.fare_per_hour || 0) * HOURS_PER_DAY)}
+                Rs. {Math.round(parseFloat(vehicle.fare_per_hour || 0) * 12)}
               </Text>
             </View>
             <View style={styles.priceDivider} />
