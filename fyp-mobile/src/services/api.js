@@ -4,7 +4,9 @@ import axios from 'axios';
 // const API_URL = 'http://10.0.103.223:5000/api';
 // const API_URL = 'http://10.0.102.116:5000/api';
 // const API_URL = 'http://10.62.35.96:5000/api';
-const API_URL = 'http://192.168.36.77:5000/api';
+// const API_URL = 'http://192.168.36.77:5000/api';
+const API_URL = 'http://10.0.74.243:5000/api';
+
 
 
 

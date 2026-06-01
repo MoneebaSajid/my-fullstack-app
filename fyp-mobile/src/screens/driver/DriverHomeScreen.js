@@ -16,7 +16,8 @@ import { io } from 'socket.io-client';
 import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
-const SOCKET_URL = '192.168.36.77:5000'; // ← apna IP
+const SOCKET_URL = '10.0.74.243:5000';
+
 
 const COLORS = {
   navy: '#0A1628',
