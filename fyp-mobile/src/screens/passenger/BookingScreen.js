@@ -295,9 +295,13 @@ export default function BookingScreen({ route, navigation }) {
       }
 
       // Calculations according to the controller
-      const subtotalBeforeDeposit = Math.round(durationCharge + perKmCharge + driverFee);
+      // const subtotalBeforeDeposit = Math.round(durationCharge + perKmCharge + driverFee);
+            const subtotalBeforeDeposit = Math.round(durationCharge + perKmCharge);
+
       const taxAmt = Math.round(subtotalBeforeDeposit * GST_RATE);
-      const totalAmount = subtotalBeforeDeposit + taxAmt + DEPOSIT_AMOUNT;
+      // const totalAmount = subtotalBeforeDeposit + taxAmt + DEPOSIT_AMOUNT;
+            const totalAmount = subtotalBeforeDeposit + taxAmt;
+
 
       setFarePreview({
         rate_type: rateType,
@@ -308,10 +312,10 @@ export default function BookingScreen({ route, navigation }) {
         fare_per_km: farePerKm,
         fare_per_day: farePerDay,
         fare_per_hour: farePerHour,
-        driver_fee: driverFee,
+        // driver_fee: driverFee,
         subtotal: subtotalBeforeDeposit,
         tax_amount: taxAmt,
-        deposit_amount: DEPOSIT_AMOUNT,
+        // deposit_amount: DEPOSIT_AMOUNT,
         total_amount: totalAmount,
       });
     } catch {

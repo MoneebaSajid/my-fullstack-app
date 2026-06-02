@@ -319,9 +319,9 @@ export default function MyBookingsScreen({ navigation }) {
             <Text style={styles.emptySubtitle}>Your trips will appear here</Text>
             <TouchableOpacity
               style={styles.bookNowBtn}
-              onPress={() => navigation.navigate('Vehicles')}
+              onPress={() => navigation.navigate('vehicles')}
             >
-              <Text style={styles.bookNowTxt}>Browse Vehicles →</Text>
+              <Text style={styles.bookNowTxt}>Browse Vehicles </Text>
             </TouchableOpacity>
           </View>
         }

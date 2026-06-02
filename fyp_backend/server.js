@@ -25,10 +25,10 @@ const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: '*',
+origin: ['http://localhost:3000', 'http://localhost:8081', '*'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));app.use(express.json());
 
 db.query('SELECT 1')
   .then(() => console.log('✅ MySQL Connected Successfully'))
