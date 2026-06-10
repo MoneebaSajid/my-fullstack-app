@@ -16,8 +16,7 @@ import { io } from 'socket.io-client';
 import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
-const SOCKET_URL = '10.62.125.66:5000';
-
+const SOCKET_URL = 'http://10.0.102.163:5000';
 
 const COLORS = {
   navy: '#0A1628',
@@ -43,29 +42,25 @@ const STATUS_CONFIG = {
   cancelled: { color: COLORS.red, icon: '❌', label: 'Cancelled' },
 };
 
+// ── Removed "requests" tab ──
 const TABS = [
   { key: 'active', label: 'My Trips', icon: '🚗' },
-  { key: 'requests', label: 'Requests', icon: '📋' },
   { key: 'history', label: 'History', icon: '📅' },
 ];
 
 export default function DriverHomeScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
-  const [openRequests, setOpenRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [requestsLoading, setRequestsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [locationTracking, setTracking] = useState(false);
   const [socketConnected, setSocketConn] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
-  const [acceptingId, setAcceptingId] = useState(null);
 
   const socketRef = useRef(null);
   const intervalRef = useRef(null);
 
   useEffect(() => {
     fetchMyBookings();
-    fetchOpenRequests();
     initSocket();
 
     return () => {
@@ -94,57 +89,17 @@ export default function DriverHomeScreen({ navigation }) {
   };
 
   // ── Fetch my assigned bookings ──
+  // (Uncommented and activated since requests are gone)
   const fetchMyBookings = async () => {
     try {
       const res = await api.get('/bookings/driver/my-bookings');
       setBookings(res.data.bookings || []);
     } catch {
-      Alert.alert('Error', 'Could not load bookings!');
+      Alert.alert('Error', 'Could not load your bookings!');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  // ── Fetch open passenger requests ──
-  const fetchOpenRequests = async () => {
-    setRequestsLoading(true);
-    try {
-      const res = await api.get('/bookings/open-requests');
-      setOpenRequests(res.data.requests || []);
-    } catch {
-      // Silently fail if endpoint not available
-    } finally {
-      setRequestsLoading(false);
-    }
-  };
-
-  // ── Accept a passenger request ──
-  const acceptRequest = async (booking_id, passengerName) => {
-    Alert.alert(
-      '📋 Accept Request?',
-      `Accept booking from ${passengerName}?\nYou will be assigned to this trip.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Accept',
-          onPress: async () => {
-            setAcceptingId(booking_id);
-            try {
-              const res = await api.post(`/bookings/accept/${booking_id}`);
-              Alert.alert('✅ Accepted!', res.data.message || 'Booking accepted!');
-              fetchMyBookings();
-              fetchOpenRequests();
-              setActiveTab('active');
-            } catch (err) {
-              Alert.alert('Error', err.response?.data?.message || 'Could not accept!');
-            } finally {
-              setAcceptingId(null);
-            }
-          },
-        },
-      ]
-    );
   };
 
   // ── GPS Start ──
@@ -211,16 +166,12 @@ export default function DriverHomeScreen({ navigation }) {
   // ── Computed lists ──
   const activeBookings = bookings.filter(b => ['confirmed', 'started'].includes(b.status));
   const historyBookings = bookings.filter(b => ['completed', 'cancelled'].includes(b.status));
-  const totalEarnings = bookings
-    .filter(b => b.status === 'completed')
-    .reduce((sum, b) => sum + parseFloat(b.total_amount || 0), 0);
 
   // ══════════════════════════════════════
-  // RENDER: My Trip Card
+  // RENDER: My Trip Card (View Only)
   // ══════════════════════════════════════
   const renderMyBooking = ({ item }) => {
     const conf = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
-    const canManage = ['confirmed', 'started'].includes(item.status);
 
     return (
       <View style={styles.card}>
@@ -254,71 +205,7 @@ export default function DriverHomeScreen({ navigation }) {
           <Text style={styles.earningAmt}>Rs. {parseFloat(item.total_amount || 0).toLocaleString()}</Text>
         </View>
         
-        {canManage && (
-          <TouchableOpacity
-            style={styles.manageBtn}
-            onPress={() => navigation.navigate('TripStatus', { booking: item })}
-          >
-            <Text style={styles.manageBtnTxt}>🚦 Manage Trip Status</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  // ══════════════════════════════════════
-  // RENDER: Open Request Card
-  // ══════════════════════════════════════
-  const renderRequest = ({ item }) => {
-    const isAccepting = acceptingId === item.booking_id;
-
-    return (
-      <View style={[styles.card, { borderColor: 'rgba(167,139,250,0.4)' }]}>
-        {/* Request badge */}
-        <View style={styles.requestBadge}>
-          <Text style={styles.requestBadgeTxt}>📋 OPEN REQUEST</Text>
-        </View>
-
-        <View style={styles.cardHeader}>
-          <View style={[styles.carIconBox, { backgroundColor: 'rgba(167,139,250,0.15)' }]}>
-            <Text style={styles.carIconTxt}>👤</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardVehicle}>{item.passenger_name}</Text>
-            <Text style={styles.cardReg}>{item.passenger_phone || 'No phone'}</Text>
-          </View>
-          <View style={styles.newBadge}>
-            <Text style={styles.newBadgeTxt}>NEW</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardDivider} />
-        
-        <InfoRow icon="🚗" label="Vehicle" value={item.model} />
-        <InfoRow icon="📍" label="Pickup" value={item.pickup_location} lines={1} />
-        <InfoRow icon="🏁" label="Dropoff" value={item.dropoff_location} lines={1} />
-        <InfoRow icon="🛣️" label="Distance" value={`${parseFloat(item.estimated_distance || 0).toFixed(1)} km`} />
-        <InfoRow icon="⏱️" label="Rate" value={item.rate_type?.toUpperCase() || 'HOURLY'} />
-        
-        <View style={styles.earningStrip}>
-          <Text style={styles.earningLabel}>Trip Fare</Text>
-          <Text style={[styles.earningAmt, { color: COLORS.purple }]}>
-            Rs. {parseFloat(item.total_amount || 0).toLocaleString()}
-          </Text>
-        </View>
-
-        {/* Accept button */}
-        <TouchableOpacity
-          style={[styles.acceptBtn, isAccepting && { opacity: 0.7 }]}
-          onPress={() => acceptRequest(item.booking_id, item.passenger_name)}
-          disabled={isAccepting}
-        >
-          {isAccepting ? (
-            <ActivityIndicator color={COLORS.white} size="small" />
-          ) : (
-            <Text style={styles.acceptBtnTxt}>✅ Accept This Request</Text>
-          )}
-        </TouchableOpacity>
+        {/* Manage Trip Status button has been removed since passengers now handle it */}
       </View>
     );
   };
@@ -362,13 +249,11 @@ export default function DriverHomeScreen({ navigation }) {
 
   const tabData = {
     active: activeBookings,
-    requests: openRequests,
     history: historyBookings,
   };
 
   const tabRenders = {
     active: renderMyBooking,
-    requests: renderRequest,
     history: renderHistory,
   };
 
@@ -381,8 +266,8 @@ export default function DriverHomeScreen({ navigation }) {
       {/* ── HEADER ── */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Login')}>
-  <Text style={styles.backBtnTxt}>←</Text>
-</TouchableOpacity>
+          <Text style={styles.backBtnTxt}>←</Text>
+        </TouchableOpacity>
         <View style={styles.driverInfo}>
           <View style={styles.avatar}>
             <Text style={styles.avatarTxt}>
@@ -409,7 +294,6 @@ export default function DriverHomeScreen({ navigation }) {
           { label: 'Total', value: bookings.length, color: COLORS.accent },
           { label: 'Active', value: activeBookings.length, color: COLORS.orange },
           { label: 'Done', value: historyBookings.filter(b => b.status === 'completed').length, color: COLORS.green },
-          { label: 'Requests', value: openRequests.length, color: COLORS.purple },
         ].map((s, i) => (
           <View key={i} style={styles.statCard}>
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
@@ -450,10 +334,7 @@ export default function DriverHomeScreen({ navigation }) {
             <TouchableOpacity
               key={tab.key}
               style={[styles.tab, isActive && styles.tabActive]}
-              onPress={() => {
-                setActiveTab(tab.key);
-                if (tab.key === 'requests') fetchOpenRequests();
-              }}
+              onPress={() => setActiveTab(tab.key)}
             >
               <Text style={styles.tabIcon}>{tab.icon}</Text>
               <Text style={[styles.tabTxt, isActive && styles.tabTxtActive]}>
@@ -461,8 +342,7 @@ export default function DriverHomeScreen({ navigation }) {
               </Text>
               {count > 0 && (
                 <View style={[styles.tabCount, {
-                  backgroundColor: tab.key === 'requests'
-                    ? COLORS.purple : isActive ? 'rgba(255,255,255,0.3)' : COLORS.glassBorder
+                  backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : COLORS.glassBorder
                 }]}>
                   <Text style={styles.tabCountTxt}>{count}</Text>
                 </View>
@@ -473,50 +353,36 @@ export default function DriverHomeScreen({ navigation }) {
       </View>
 
       {/* ── CONTENT ── */}
-      {activeTab === 'requests' && requestsLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={COLORS.accent} />
-          <Text style={styles.loadingTxt}>Loading requests...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={tabData[activeTab]}
-          renderItem={tabRenders[activeTab]}
-          keyExtractor={(item) => item.booking_id.toString()}
-          contentContainerStyle={styles.listPadding}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                fetchMyBookings();
-                fetchOpenRequests();
-              }}
-              tintColor={COLORS.accent}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyIcon}>
-                {activeTab === 'requests' ? '📋' : activeTab === 'active' ? '🕐' : '📅'}
-              </Text>
-              <Text style={styles.emptyTitle}>
-                {activeTab === 'requests'
-                  ? 'No open requests right now'
-                  : activeTab === 'active'
-                    ? 'No active trips'
-                    : 'No trip history'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {activeTab === 'requests'
-                  ? 'Passengers will appear here when they book'
-                  : 'Pull down to refresh'}
-              </Text>
-            </View>
-          }
-        />
-      )}
+      <FlatList
+        data={tabData[activeTab]}
+        renderItem={tabRenders[activeTab]}
+        keyExtractor={(item) => item.booking_id.toString()}
+        contentContainerStyle={styles.listPadding}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchMyBookings();
+            }}
+            tintColor={COLORS.accent}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyIcon}>
+              {activeTab === 'active' ? '🕐' : '📅'}
+            </Text>
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'active'
+                ? 'No active trips'
+                : 'No trip history'}
+            </Text>
+            <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -599,16 +465,6 @@ const styles = StyleSheet.create({
   earningStrip: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.glassBorder, marginTop: 4, marginBottom: 10 },
   earningLabel: { color: COLORS.textMuted, fontSize: 12 },
   earningAmt: { color: COLORS.green, fontSize: 17, fontWeight: '900' },
-  manageBtn: { backgroundColor: COLORS.accent, padding: 11, borderRadius: 11, alignItems: 'center' },
-  manageBtnTxt: { color: COLORS.white, fontWeight: '800', fontSize: 13 },
-  
-  // Request specific
-  requestBadge: { backgroundColor: 'rgba(167,139,250,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start', marginBottom: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' },
-  requestBadgeTxt: { color: COLORS.purple, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  newBadge: { backgroundColor: COLORS.orange, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeTxt: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
-  acceptBtn: { backgroundColor: COLORS.green, padding: 13, borderRadius: 12, alignItems: 'center' },
-  acceptBtnTxt: { color: COLORS.white, fontWeight: '800', fontSize: 13 },
   
   // History
   historyCard: { backgroundColor: COLORS.glass, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.glassBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

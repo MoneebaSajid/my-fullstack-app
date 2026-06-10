@@ -8,7 +8,7 @@ import { io } from 'socket.io-client';
 import api from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
-const SOCKET_URL = '10.62.125.66:5000';
+const SOCKET_URL = 'http://10.0.102.163:5000';
 
 
 const COLORS = {

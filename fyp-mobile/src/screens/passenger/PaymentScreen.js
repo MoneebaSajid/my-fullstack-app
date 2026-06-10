@@ -927,7 +927,7 @@ export default function PaymentScreen({ route, navigation }) {
             style={styles.proceedBtn}
             onPress={handleProceed}
           >
-            <Text style={styles.proceedBtnTxt}>Get OTP & Verify →</Text>
+            <Text style={styles.proceedBtnTxt}>Get OTP & Verify </Text>
           </TouchableOpacity>
 
           <View style={{ height: 30 }} />

@@ -98,18 +98,18 @@ const checkAvailability = async ({ vehicle_id, driver_id = null, passenger_id })
   }
 
   // 4. Passenger must not have another active booking
-  const [pRows] = await db.query(
-    `SELECT booking_id FROM BookingWithDriver
-       WHERE passenger_id = ? AND status IN ('pending','confirmed','started')
-     UNION ALL
-     SELECT booking_id FROM BookingWithoutDriver
-       WHERE passenger_id = ? AND status IN ('pending','confirmed','started')
-     LIMIT 1`,
-    [passenger_id, passenger_id]
-  );
-  if (pRows.length > 0) {
-    return { ok: false, message: '❌ You already have an active booking! Please complete or cancel it first.' };
-  }
+  // const [pRows] = await db.query(
+  //   `SELECT booking_id FROM BookingWithDriver
+  //      WHERE passenger_id = ? AND status IN ('pending','confirmed','started')
+  //    UNION ALL
+  //    SELECT booking_id FROM BookingWithoutDriver
+  //      WHERE passenger_id = ? AND status IN ('pending','confirmed','started')
+  //    LIMIT 1`,
+  //   [passenger_id, passenger_id]
+  // );
+  // if (pRows.length > 0) {
+  //   return { ok: false, message: '❌ You already have an active booking! Please complete or cancel it first.' };
+  // }
 
   return { ok: true };
 };
@@ -177,12 +177,11 @@ const createBookingWithDriver = async (req, res) => {
         `INSERT INTO Receipt
           (passenger_id, booking_id, booking_type, receipt_number,
            base_fare, tax_amount, deposit_amount, total_amount, payment_status)
-         VALUES (?,?,?,?,?,?,?,?,'pending')`,
-        [
+VALUES (?,?,?,?,?,?,?,?,?,?,'confirmed')`, // <-- Changed from 'pending'        [
           passenger_id, result.insertId, 'with-driver', receipt_number,
           fare.duration_charge + fare.per_km_charge + fare.driver_fee,
           fare.tax_amount, fare.deposit_amount, fare.total_amount,
-        ]
+        
       );
     } catch (_) {}
 
@@ -245,12 +244,11 @@ const createBookingWithoutDriver = async (req, res) => {
         (passenger_id, vehicle_id, start_date, end_date, rate_type,
          self_pickup_location, onsite_location, estimated_distance,
          special_requests, total_amount, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,'pending')`,
-      [
+VALUES (?,?,?,?,?,?,?,?,?,?,'confirmed')`, // <-- Changed from 'pending'      [
         passenger_id, vehicle_id, start_date, end_date, rate_type,
         self_pickup_location, onsite_location || '', estimated_distance,
         special_requests, fare.total_amount,
-      ]
+      
     );
 
     // ── Mark vehicle as booked ──
@@ -380,9 +378,58 @@ const getAllBookings = async (req, res) => {
 // ══════════════════════════════════════════════════
 // PUT /api/bookings/update-status  (driver/admin)
 // ══════════════════════════════════════════════════
+// const updateBookingStatus = async (req, res) => {
+//   try {
+//     const { booking_id, booking_type, status } = req.body;
+
+//     const VALID = ['started', 'completed', 'cancelled'];
+//     if (!VALID.includes(status)) {
+//       return res.status(400).json({ message: `Invalid status! Use: ${VALID.join(', ')}` });
+//     }
+
+//     const table = booking_type === 'with-driver'
+//       ? 'BookingWithDriver' : 'BookingWithoutDriver';
+
+//     // Get booking details
+//     const [rows] = await db.query(
+//       `SELECT * FROM ${table} WHERE booking_id = ?`, [booking_id]
+//     );
+//     if (!rows.length) return res.status(404).json({ message: '❌ Booking not found!' });
+
+//     const booking = rows[0];
+
+//     await db.query(`UPDATE ${table} SET status = ? WHERE booking_id = ?`, [status, booking_id]);
+
+//     // On complete or cancel → release vehicle + driver
+//     if (status === 'completed' || status === 'cancelled') {
+//       await db.query(
+//         `UPDATE Vehicle SET availability = 'available' WHERE vehicle_id = ?`,
+//         [booking.vehicle_id]
+//       );
+//       if (booking_type === 'with-driver' && booking.driver_id) {
+//         await db.query(
+//           `UPDATE Driver SET availability_status = 'available' WHERE driver_id = ?`,
+//           [booking.driver_id]
+//         );
+//       }
+//     }
+
+//     return res.status(200).json({
+//       message: `✅ Status updated to '${status}'!`,
+//       booking_id,
+//       status,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ message: '❌ Server error', error: error.message });
+//   }
+// };
+// ══════════════════════════════════════════════════
+// PUT /api/bookings/update-status  (passenger/driver/admin)
+// ══════════════════════════════════════════════════
 const updateBookingStatus = async (req, res) => {
   try {
     const { booking_id, booking_type, status } = req.body;
+    const userId = req.user.id; // Get the user ID from the token
 
     const VALID = ['started', 'completed', 'cancelled'];
     if (!VALID.includes(status)) {
@@ -396,9 +443,16 @@ const updateBookingStatus = async (req, res) => {
     const [rows] = await db.query(
       `SELECT * FROM ${table} WHERE booking_id = ?`, [booking_id]
     );
+    
     if (!rows.length) return res.status(404).json({ message: '❌ Booking not found!' });
 
     const booking = rows[0];
+
+    // Optional Security Check: Ensure the user updating is the passenger who owns the booking
+    // (You can comment this out if you also want admins/drivers to update it)
+    if (booking.passenger_id !== userId) {
+      return res.status(403).json({ message: '❌ You are not authorized to update this booking.' });
+    }
 
     await db.query(`UPDATE ${table} SET status = ? WHERE booking_id = ?`, [status, booking_id]);
 
@@ -417,7 +471,7 @@ const updateBookingStatus = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: `✅ Status updated to '${status}'!`,
+      message: `✅ Trip status successfully updated to '${status}'!`,
       booking_id,
       status,
     });
