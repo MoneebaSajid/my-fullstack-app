@@ -23,6 +23,8 @@
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- - [Screenshots](#-screenshots)
+- [Project Demonstration Video](#-project-demonstration-video)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [System Architecture](#-system-architecture)
@@ -395,21 +397,57 @@ cd fyp-mobile
 npm install
 ```
 
-Update IP in `src/services/api.js`:
-```javascript
-// Replace with your WiFi IP (run ipconfig to find it)
-baseURL: 'http://YOUR_WIFI_IP:5000/api'
+### Update Local WiFi IP Address
+
+Before running the mobile application, find your computer's local WiFi IP address:
+
+```bash
+ipconfig
 ```
 
-Start mobile app:
+Example:
+
+```text
+IPv4 Address: 192.168.100.5
+```
+
+Update this IP address in the following files:
+
+#### File 1: src/services/api.js
+
+```javascript
+baseURL: 'http://192.168.100.5:5000/api'
+```
+
+#### File 2: src/screens/driver/DriverHomeScreen.js
+
+```javascript
+const socket = io('http://192.168.100.5:5000');
+```
+
+#### File 3: src/screens/passenger/TrackDriverScreen.js
+
+```javascript
+const socket = io('http://192.168.100.5:5000');
+```
+
+> Replace `192.168.100.5` with your own WiFi IP address.
+
+### Start Mobile Application
+
 ```bash
 npx expo start --clear
-# Scan QR code with Expo Go app
 ```
 
----
+Scan the QR code using Expo Go on your Android device.
 
-### 5️⃣ Admin Panel Setup
+### Important Notes
+
+- Mobile device and computer must be connected to the same WiFi network.
+- Backend server must be running on Port 5000.
+- GPS permissions must be enabled.
+- Internet access must be available for maps and tracking services.
+- ### 5️⃣ Admin Panel Setup
 
 ```bash
 cd nexride-admin
@@ -419,7 +457,48 @@ npm start
 ```
 
 ---
+## ▶ Running Complete System
 
+The complete NexRide system requires three modules to run simultaneously.
+
+### Terminal 1 – Backend Server
+
+```bash
+cd fyp_backend
+npm install
+npm run dev
+```
+
+Backend URL:
+
+```text
+http://localhost:5000
+```
+
+### Terminal 2 – Mobile Application
+
+```bash
+cd fyp-mobile
+npx expo start --clear
+```
+
+Scan the QR code using Expo Go.
+
+### Terminal 3 – Admin Panel
+
+```bash
+cd nexride-admin
+npm install
+npm start
+```
+
+Admin Panel URL:
+
+```text
+http://localhost:3000
+```
+
+After all three services are running, the NexRide system is ready for testing.
 ### Quick Reset (If vehicles/drivers stuck)
 
 ```sql
@@ -530,7 +609,57 @@ Login → Dashboard (Charts + AI Insights)
 | **Special Requests** | Any text (max 300 chars) |
 
 ---
+---
 
+## 📸 Screenshots
+
+### Login Screen
+
+![Login Screen](screenshots/login-screen.png)
+
+### Vehicle Booking Screen
+
+![Vehicle Booking Screen](screenshots/booking-screen.png)
+
+### Driver Home Screen
+
+![Driver Home Screen](screenshots/driver-home-screen.png)
+
+### Live Driver Tracking
+
+![Live Driver Tracking](screenshots/live-tracking-screen.png)
+
+### Admin Dashboard
+
+![Admin Dashboard](screenshots/admin-dashboard.png)
+
+---
+
+## 🎥 Project Demonstration Video
+
+A complete project demonstration video is included with this repository.
+
+Video Location:
+
+```text
+/video/NexRide_Demo.mp4
+```
+
+The demonstration covers:
+
+- Passenger Registration & Login
+- Vehicle Browsing
+- Booking Creation
+- Fare Calculation
+- Driver Assignment
+- Real-Time GPS Tracking
+- Payment Processing
+- Receipt Generation
+- Driver Module
+- Admin Dashboard
+- Vehicle Management
+- Live Tracking System
+- AI-Based Recommendation Features
 ## 👥 Team
 
 <div align="center">
