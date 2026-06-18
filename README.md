@@ -614,7 +614,6 @@ Login → Dashboard (Charts + AI Insights)
 ## 📸 Screenshots
 
 ### Login Screen
-<img src="./fyp-mobile/assets/login-screen.png" alt="NexRide LoginScreen" width="200"/>
 
 ![Login Screen](screenshots/login-screen.png)
 
