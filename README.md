@@ -615,15 +615,15 @@ Login → Dashboard (Charts + AI Insights)
 
 ### Login Screen
 
-![Login Screen](screenshots/login-screen.png)
+![Login](screenshots/login-screen.png)
 
 ### Vehicle Booking Screen
 
-![Vehicle Booking Screen](screenshots/booking-screen.png)
+![Booking](screenshots/booking-screen.png)
 
 ### Driver Home Screen
 
-![Driver Home Screen](screenshots/driver-home-screen.png)
+![Driver](screenshots/driver-home-screen.png)
 
 ### Live Driver Tracking
 
@@ -639,11 +639,8 @@ Login → Dashboard (Charts + AI Insights)
 
 A complete project demonstration video is included with this repository.
 
-Video Location:
+![Mobile App View](screenshots/video demo.mp4)
 
-```text
-/video/NexRide_Demo.mp4
-```
 
 The demonstration covers:
 
