@@ -21,22 +21,14 @@
 ---
 
 ## 📋 Table of Contents
-
 - [Overview](#-overview)
-- - [Screenshots](#-screenshots)
-- [Project Demonstration Video](#-project-demonstration-video)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
-- [System Architecture](#-system-architecture)
-- [Pricing Logic](#-pricing-logic)
-- [Project Structure](#-project-structure)
-- [Database Schema](#-database-schema)
 - [Installation & Setup](#-installation--setup)
 - [API Documentation](#-api-documentation)
 - [Screenshots](#-screenshots)
-- [Team](#-team)
-
----
+- [Project Demonstration Video](#-project-demonstration-video)
+- [Team](#-team)---
 
 ## 🌟 Overview
 
@@ -615,23 +607,23 @@ Login → Dashboard (Charts + AI Insights)
 
 ### Login Screen
 
-![Login](screenshots/login-screen.png)
+![Login](screenshots/login-screen.jpg)
 
 ### Vehicle Booking Screen
 
-![Booking](screenshots/booking-screen.png)
+![Booking](screenshots/booking-screen.jpg)
 
 ### Driver Home Screen
 
-![Driver](screenshots/driver-home-screen.png)
+![Driver](screenshots/driver-home-screen.jpg)
 
 ### Live Driver Tracking
 
-![Live Driver Tracking](screenshots/live-tracking-screen.png)
+![Live Driver Tracking](screenshots/live-tracking-screen.jpg)
 
 ### Admin Dashboard
 
-![Admin Dashboard](screenshots/admin-dashboard.png)
+![Admin Dashboard](screenshots/admin-dashboard.jpg)
 
 ---
 
@@ -639,8 +631,8 @@ Login → Dashboard (Charts + AI Insights)
 
 A complete project demonstration video is included with this repository.
 
-(screenshots/video demo.mp4)
 
+[Click here to watch demo video](./screenshots/video%20demo.mp4)
 
 The demonstration covers:
 
