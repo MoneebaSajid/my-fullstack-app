@@ -614,9 +614,7 @@ Login → Dashboard (Charts + AI Insights)
 
 ![Booking](screenshots/booking-screen.jpg)
 
-### Driver Home Screen
 
-![Driver](screenshots/driver-home-screen.jpg)
 
 ### Live Driver Tracking
 
