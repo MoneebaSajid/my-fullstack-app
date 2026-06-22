@@ -631,7 +631,7 @@ Login → Dashboard (Charts + AI Insights)
 A complete project demonstration video is included with this repository.
 
 
-[▶ Watch Demo Video](./screenshots/video-demo.mp4)
+[▶ Watch Demo Video](./screenshots/video demo.mp4)
 The demonstration covers:
 
 - Passenger Registration & Login
