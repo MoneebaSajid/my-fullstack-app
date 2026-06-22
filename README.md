@@ -639,7 +639,7 @@ Login → Dashboard (Charts + AI Insights)
 
 A complete project demonstration video is included with this repository.
 
-![Mobile App View](screenshots/video demo.mp4)
+(screenshots/video demo.mp4)
 
 
 The demonstration covers:
